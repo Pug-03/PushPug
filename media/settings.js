@@ -163,6 +163,12 @@
         opt('checksFor', 'team', I('branch'), s('gh.for.team'), '') +
       '</div>' +
       '<p class="st-hint st-gh-bg" data-text="ghBg"></p>' +
+      '<h3 class="st-h3">' + esc(s('set.wf')) + '</h3>' +
+      '<div class="wz-grid three" role="radiogroup">' +
+        opt('prWorkflow', 'ask', I('auto'), s('set.wf.ask'), s('set.wf.askHint')) +
+        opt('prWorkflow', 'direct', I('cloud'), s('set.wf.direct'), s('set.wf.directHint')) +
+        opt('prWorkflow', 'pullRequest', I('branch'), s('set.wf.pr'), s('set.wf.prHint')) +
+      '</div>' +
       '<div class="st-card st-account">' +
         '<div class="st-account-ic">' + I('github') + '</div>' +
         '<div class="st-account-text"><div class="st-label">' + esc(s('set.gh.account')) + '</div>' +

@@ -64,7 +64,8 @@ export class SetupWizard {
       localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')],
     });
     this.panel.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png');
-    this.render(lang);
+    // The panel can be closed while render() is still waiting; setting its html then throws.
+    void this.render(lang).catch(() => undefined);
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
     this.panel.webview.onDidReceiveMessage((m: FromWizard) => void this.onMessage(m), null, this.disposables);
     freq.modes.onDidChange(() => void this.postFreq(), null, this.disposables);

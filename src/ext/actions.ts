@@ -67,7 +67,8 @@ export class Actions {
         this.repos.setPhase(target, 'idle');
       }
     });
-    entry.undo = undo ?? undefined;
+    // Only a pull that merged something replaces the undo; an up-to-date or failed one keeps the earlier undo.
+    if (result.kind === 'ok') entry.undo = undo ?? undefined;
     this.log.appendLine(`[pull] ${entry.name}: ${result.kind}`);
     if (result.kind === 'autostashConflict') await this.repos.rememberAutostash(target, result.stashSha);
     this.repos.setLastResult(target, result);

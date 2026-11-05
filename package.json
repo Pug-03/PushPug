@@ -193,7 +193,7 @@
         },
         {
           "command": "pushpug.sendForReview",
-          "when": "scmProvider == git && config.pushpug.pullRequests.enabled",
+          "when": "scmProvider == git && config.pushpug.pullRequests.enabled && config.pushpug.pullRequests.workflow != direct",
           "group": "navigation@1"
         },
         {

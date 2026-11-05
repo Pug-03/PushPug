@@ -480,5 +480,12 @@
   "upd.btn.install": "Install update",
   "upd.btn.notes": "What's new",
   "upd.btn.skip": "Skip this version",
-  "upd.btn.reload": "Reload now"
+  "upd.btn.reload": "Reload now",
+  "wv.set.wf": "Commits on main reach the team…",
+  "wv.set.wf.ask": "Ask each time",
+  "wv.set.wf.askHint": "Push to main or send as a pull request",
+  "wv.set.wf.direct": "Straight to main",
+  "wv.set.wf.directHint": "Push; no pull request reminders",
+  "wv.set.wf.pr": "Always a pull request",
+  "wv.set.wf.prHint": "Moved to a task branch for review"
 }

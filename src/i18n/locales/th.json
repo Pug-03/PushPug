@@ -217,7 +217,7 @@
   "field.activeHours.start": "เวลาเริ่มเช็ก",
   "field.activeHours.end": "เวลาหยุดเช็ก",
   "settings.resetDone": "คืนค่าเริ่มต้นทั้งหมดแล้ว",
-  "ci.open": "ดูบน GitHub",
+  "ci.open": "เปิดใน GitHub",
   "ci.failed": "เทสต์บน GitHub ของ {0} ไม่ผ่าน: {1}",
   "ci.passed": "เทสต์บน GitHub ของ {0} ผ่านหมดแล้ว ✓",
   "ci.status.running": "$(sync~spin) เทสต์ {0}/{1}",
@@ -480,5 +480,12 @@
   "upd.btn.install": "อัปเดตเลย",
   "upd.btn.notes": "มีอะไรใหม่",
   "upd.btn.skip": "ข้ามเวอร์ชันนี้",
-  "upd.btn.reload": "รีโหลดเลย"
+  "upd.btn.reload": "รีโหลดเลย",
+  "wv.set.wf": "commit บน main ส่งให้ทีมแบบไหน",
+  "wv.set.wf.ask": "ถามทุกครั้ง",
+  "wv.set.wf.askHint": "push เข้า main หรือส่งเป็น pull request",
+  "wv.set.wf.direct": "เข้า main ตรง ๆ",
+  "wv.set.wf.directHint": "push เลย ไม่เตือนเรื่อง pull request",
+  "wv.set.wf.pr": "ใช้ pull request ตลอด",
+  "wv.set.wf.prHint": "ย้ายไป branch งานแล้วส่งให้ทีมดู"
 }

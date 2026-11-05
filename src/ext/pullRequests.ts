@@ -80,6 +80,8 @@ export class PullRequests implements vscode.Disposable {
   private readonly teamLookedAt = new Map<string, number>();
   /** Repos whose check is running: checks can overlap now that they don't hold the repo lock. */
   private readonly busy = new Set<string>();
+  /** Checks asked for while one was running (value: whether any of them was forced). */
+  private readonly again = new Map<string, boolean>();
   private readonly emitter = new vscode.EventEmitter<void>();
   readonly onDidChange = this.emitter.event;
   /** Signed-in GitHub login; only a successful answer is kept. */
@@ -115,12 +117,21 @@ export class PullRequests implements vscode.Disposable {
   private async onCheck(entry: RepoEntry, force = false): Promise<void> {
     if (!this.enabled) return;
     const key = repoKey(entry.root);
-    if (this.busy.has(key)) return;
+    if (this.busy.has(key)) {
+      // A check is running (maybe for the branch we just left): run once more when it's done.
+      this.again.set(key, (this.again.get(key) ?? false) || force);
+      return;
+    }
     this.busy.add(key);
     try {
       await this.check(entry, key, force);
     } finally {
       this.busy.delete(key);
+    }
+    const again = this.again.get(key);
+    if (again !== undefined) {
+      this.again.delete(key);
+      await this.onCheck(entry, again);
     }
   }
 
@@ -148,10 +159,9 @@ export class PullRequests implements vscode.Disposable {
       s.nextLookAt = Date.now() + OWN_PR_GAP_MS;
       const found = await findPullRequest(request, slug, branch);
       if (found.kind === 'ok') {
-        const before = s.pr;
         s.pr = found.pr;
         s.prBranch = branch;
-        if (found.pr) void this.onOwnPr(entry, slug, before, found.pr);
+        if (found.pr) void this.onOwnPr(entry, slug, found.pr);
       } else {
         // Rate limited: wait for GitHub's reset instead of asking again every minute.
         if (found.kind === 'rateLimited') s.nextLookAt = Math.max(s.nextLookAt, found.resetAt ?? Date.now() + 15 * 60_000);
@@ -173,8 +183,10 @@ export class PullRequests implements vscode.Disposable {
   }
 
   /** Say so when my pull request gets merged, closed, or starts to conflict with main. */
-  private async onOwnPr(entry: RepoEntry, slug: string, before: PullRequest | null, pr: PullRequest): Promise<void> {
-    if (before?.number === pr.number && before.status === pr.status && before.headSha === pr.headSha) return;
+  private async onOwnPr(entry: RepoEntry, slug: string, pr: PullRequest): Promise<void> {
+    // Quiet hours / snooze: don't mark it as told; it's announced on the first check afterwards.
+    // (announced() remembers what was told, so later checks don't repeat it.)
+    if (this.alerts.isQuiet()) return;
     const id = `${slug}#${pr.number}`;
     if (pr.status === 'merged') {
       if (this.announced(`${id}:merged`)) return;
@@ -205,6 +217,8 @@ export class PullRequests implements vscode.Disposable {
     const firstLook = !all[slug];
     const seen = new Set(all[slug] ?? []);
     const fresh = open.filter((p) => !seen.has(p.number) && p.author !== this.login);
+    // Quiet hours / snooze: leave them unseen so they're announced afterwards.
+    if (!firstLook && fresh.length && this.alerts.isQuiet()) return;
     all[slug] = [...new Set([...seen, ...open.map((p) => p.number)])].slice(-300);
     await this.context.globalState.update(SEEN_KEY, all);
     if (firstLook) return;

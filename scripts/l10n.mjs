@@ -14,6 +14,8 @@ export function generateL10nBundle() {
   const bundle = {};
   for (const [key, text] of Object.entries(en)) {
     if (key.startsWith('wv.')) continue; // webview strings are shipped separately
+    // vscode.l10n looks up by the English text: one English text must have one Thai text.
+    if (text in bundle && bundle[text] !== th[key]) throw new Error(`"${text}" has two different Thai texts (${key})`);
     bundle[text] = th[key];
   }
   mkdirSync('l10n', { recursive: true });
