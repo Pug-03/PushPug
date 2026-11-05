@@ -29,7 +29,7 @@ import type { Requester } from '../core/checks';
 import { githubSlug } from '../core/ciRuns';
 import { listFiles } from '../core/messages';
 import { repoKey } from '../core/storage';
-import { readSettings } from './settings';
+import { readSettings, type PrWorkflow } from './settings';
 import { t } from './l10n';
 import { showGitError, type Actions } from './actions';
 import { fetchRequester, type ChecksWatcher } from './checks';
@@ -65,6 +65,7 @@ export interface PrView {
   onBase: boolean;
   unpushed: number;
   github: boolean;
+  workflow: PrWorkflow;
   pr: { number: number; title: string; url: string; status: PullRequest['status'] } | null;
 }
 
@@ -469,6 +470,7 @@ export class PullRequests implements vscode.Disposable {
       onBase: s.branch === s.base.base,
       unpushed: s.unpushed,
       github: !!s.slug,
+      workflow: readSettings().prWorkflow,
       pr: pr ? { number: pr.number, title: pr.title, url: pr.url, status: pr.status } : null,
     };
   }

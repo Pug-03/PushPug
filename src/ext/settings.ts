@@ -3,6 +3,7 @@ import type { LangSetting } from '../i18n';
 import { DEFAULT_CONFIG, DEFAULT_MODE, MODES, clampConfig, type Adjustment, type FrequencyConfig, type Mode } from '../core/frequency';
 
 export type ThemeSetting = 'system' | 'light' | 'dark';
+export type PrWorkflow = 'ask' | 'direct' | 'pullRequest';
 
 export interface Settings {
   language: LangSetting;
@@ -19,6 +20,8 @@ export interface Settings {
   checksFor: 'all' | 'mine' | 'team';
   /** Pull request workflow (start task, send for review, follow the pull request). */
   prEnabled: boolean;
+  /** How my commits on main get to the team: ask each time, push straight to main, or always via pull request. */
+  prWorkflow: PrWorkflow;
   /** Tell me when a teammate opens a pull request. */
   prNotifyTeam: boolean;
   quietEnabled: boolean;
@@ -38,6 +41,7 @@ const SETTING_KEYS: Record<keyof Settings, string> = {
   checksOnPass: 'actions.notifyOnPass',
   checksFor: 'actions.notifyFor',
   prEnabled: 'pullRequests.enabled',
+  prWorkflow: 'pullRequests.workflow',
   prNotifyTeam: 'pullRequests.notifyTeam',
   quietEnabled: 'quiet.enabled',
   quietStart: 'quiet.start',
@@ -58,6 +62,7 @@ export function readSettings(): Settings {
     checksOnPass: c.get<boolean>('actions.notifyOnPass', true),
     checksFor: c.get<'all' | 'mine' | 'team'>('actions.notifyFor', 'all'),
     prEnabled: c.get<boolean>('pullRequests.enabled', true),
+    prWorkflow: c.get<PrWorkflow>('pullRequests.workflow', 'ask'),
     prNotifyTeam: c.get<boolean>('pullRequests.notifyTeam', true),
     quietEnabled: c.get<boolean>('quiet.enabled', false),
     quietStart: c.get<string>('quiet.start', '22:00'),
