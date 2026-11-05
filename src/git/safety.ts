@@ -4,7 +4,7 @@
 import { createHash } from 'node:crypto';
 import { runGit, splitZ, type GitOptions } from './exec';
 import { isProtectedRejection } from './branches';
-import { currentBranch, fetchUpstream, revParse, commitsBetween, upstreamOf, type Commit } from './repo';
+import { currentBranch, fetchUpstream, revParse, commitsBetween, upstreamOf, remoteOfBranch, type Commit } from './repo';
 
 export const UNDO_WINDOW_MS = 10 * 60_000;
 
@@ -24,7 +24,13 @@ export async function fingerprint(root: string, opts: GitOptions = {}): Promise<
   const untracked = splitZ((await runGit(root, ['ls-files', '-o', '--exclude-standard', '-z'], opts)).stdout);
   if (untracked.length) {
     h.update(untracked.join('\0'));
-    h.update((await runGit(root, ['hash-object', '--', ...untracked], opts)).stdout);
+    // Paths go through stdin: tens of thousands of names on the command line fail with E2BIG.
+    // (--stdin-paths is line based, so a name containing a newline only counts by name.)
+    const paths = untracked.filter((p) => !p.includes('\n'));
+    if (paths.length) {
+      const hashed = await runGit(root, ['hash-object', '--stdin-paths'], { ...opts, input: paths.join('\n') + '\n' });
+      h.update(`${hashed.code}\0${hashed.stdout}`);
+    }
   }
   return h.digest('hex');
 }
@@ -112,7 +118,8 @@ export type PushResult =
  * of letting git reject the push.
  */
 export async function safePush(root: string, opts: GitOptions = {}): Promise<PushResult> {
-  if (!(await currentBranch(root, opts))) return { kind: 'detached' };
+  const branch = await currentBranch(root, opts);
+  if (!branch) return { kind: 'detached' };
   if (!(await upstreamOf(root, opts))) return { kind: 'noUpstream' };
   const f = await fetchUpstream(root, opts);
   if (!f.ok) return { kind: 'error', message: f.message };
@@ -123,7 +130,12 @@ export async function safePush(root: string, opts: GitOptions = {}): Promise<Pus
   }
   const ahead = Number((await runGit(root, ['rev-list', '--count', '@{u}..HEAD'], opts)).stdout.trim()) || 0;
   if (!ahead) return { kind: 'nothing' };
-  const r = await runGit(root, ['push'], { timeoutMs: 120_000, ...opts });
+  // Push explicitly to the upstream branch: a bare `git push` (push.default=simple)
+  // refuses when the local branch name differs from the upstream's name.
+  const remote = await remoteOfBranch(root, branch, opts);
+  const merge = (await runGit(root, ['config', '--get', `branch.${branch}.merge`], opts)).stdout.trim();
+  const args = remote && merge ? ['push', remote, `HEAD:${merge}`] : ['push'];
+  const r = await runGit(root, args, { timeoutMs: 120_000, ...opts });
   if (r.code === 0) return { kind: 'ok', pushed: ahead };
   const out = `${r.stdout}\n${r.stderr}`.trim();
   if (isProtectedRejection(out)) return { kind: 'protected', message: out };
