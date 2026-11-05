@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.3 — 2026-11-05
 
 - **Pug tells you about new versions:** copies installed from a `.vsix` look on GitHub once a day and offer
   **Install update** (downloads it, installs it, offers a reload). New command **PushPug: Check for Updates**,
