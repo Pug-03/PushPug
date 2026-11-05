@@ -1,11 +1,11 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { makeTeam, write, read, commitAll, commitAndPush, editLine, type Team } from './helpers';
 import { git, runGit } from '../src/git/exec';
 import { pull } from '../src/git/repo';
-import { captureBeforePull, finishUndoRecord, undoMerge, canUndo, safePush, UNDO_WINDOW_MS, type UndoRecord } from '../src/git/safety';
+import { captureBeforePull, finishUndoRecord, undoMerge, canUndo, safePush, fingerprint, UNDO_WINDOW_MS, type UndoRecord } from '../src/git/safety';
 import { explainGitError } from '../src/core/gitErrors';
 
 const head = async (repo: string) => (await git(repo, ['rev-parse', 'HEAD'])).trim();
@@ -127,6 +127,16 @@ describe('push with a check first', () => {
     assert.deepEqual(await safePush(t.bob), { kind: 'detached' });
   });
 
+  test('pushes when the local branch name differs from its upstream branch', async () => {
+    await git(t.bob, ['checkout', '-q', '-b', 'feature', 'origin/main']);
+    write(t.bob, 'f.txt', 'f');
+    await commitAll(t.bob, 'Feature');
+    assert.deepEqual(await safePush(t.bob), { kind: 'ok', pushed: 1 });
+    const remoteHead = (await git(t.alice, ['ls-remote', 'origin', 'main'])).split('\t')[0];
+    assert.equal(remoteHead, await head(t.bob));
+    assert.equal((await git(t.bob, ['rev-parse', 'origin/main'])).trim(), await head(t.bob));
+  });
+
   test('a rejected push (someone pushed in between) is recognised', async () => {
     write(t.alice, 'a.txt', 'a');
     await commitAndPush(t.alice, 'Alice');
@@ -137,6 +147,22 @@ describe('push with a check first', () => {
     assert.notEqual(r.code, 0);
     const out = r.stderr;
     assert.equal(explainGitError(out), 'rejected');
+  });
+});
+
+describe('fingerprint with very many untracked files', () => {
+  let t: Team;
+  beforeEach(async () => (t = await makeTeam()));
+  afterEach(() => t.cleanup());
+
+  test('works (no E2BIG) and still notices an edit', async () => {
+    const dir = join(t.bob, 'generated-output-folder-with-a-rather-long-name');
+    mkdirSync(dir);
+    for (let i = 0; i < 20000; i++) writeFileSync(join(dir, `some-fairly-long-generated-file-name-number-${i}.txt`), String(i));
+    const f1 = await fingerprint(t.bob);
+    assert.equal(await fingerprint(t.bob), f1);
+    writeFileSync(join(dir, 'some-fairly-long-generated-file-name-number-5.txt'), 'changed');
+    assert.notEqual(await fingerprint(t.bob), f1);
   });
 });
 

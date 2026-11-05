@@ -8,6 +8,7 @@ import {
   defaultBranch,
   suggestBranchName,
   checkBranchName,
+  availableBranchName,
   commitsNotOnBase,
   startTask,
   moveCommitsToBranch,
@@ -51,6 +52,25 @@ describe('task branches', () => {
     assert.equal(await checkBranchName(t.bob, 'has space'), 'invalid');
     assert.equal(await checkBranchName(t.bob, 'main'), 'exists');
     assert.equal(await checkBranchName(t.bob, 'task/new'), 'ok');
+  });
+
+  test('name check: a branch that is a path prefix (or under the name) blocks it', async () => {
+    await git(t.bob, ['branch', 'task']);
+    assert.equal(await checkBranchName(t.bob, 'task/fix-login'), 'blocked');
+    assert.equal((await startTask(t.bob, 'task/fix-login', BASE)).kind, 'exists');
+    await git(t.bob, ['branch', 'feature/login/part-1']);
+    assert.equal(await checkBranchName(t.bob, 'feature/login'), 'exists');
+    assert.equal(await checkBranchName(t.bob, 'feature/login-2'), 'ok');
+  });
+
+  test('a free branch name is found even when "task" itself is a branch', async () => {
+    assert.equal(await availableBranchName(t.bob, 'Fix login'), 'task/fix-login');
+    await git(t.bob, ['branch', 'task/fix-login']);
+    assert.equal(await availableBranchName(t.bob, 'Fix login'), 'task/fix-login-2');
+    await git(t.bob, ['branch', '-D', 'task/fix-login']);
+    await git(t.bob, ['branch', 'task']);
+    assert.equal(await availableBranchName(t.bob, 'Fix login'), 'task-fix-login');
+    assert.equal((await startTask(t.bob, 'task-fix-login', BASE)).kind, 'ok');
   });
 
   test('start a task: new branch from the latest main, uncommitted work comes along', async () => {

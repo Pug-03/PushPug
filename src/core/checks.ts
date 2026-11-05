@@ -68,6 +68,7 @@ interface ApiCheckRun {
   html_url?: string;
   details_url?: string;
   app?: { slug?: string };
+  check_suite?: { id?: number } | null;
 }
 interface ApiStatus {
   id: number;
@@ -81,11 +82,15 @@ interface ApiStatus {
 
 export function parseCheckRuns(json: unknown): CheckItem[] {
   const runs = ((json as { check_runs?: ApiCheckRun[] })?.check_runs ?? []) as ApiCheckRun[];
-  // A re-run shows up as a second run with the same name: keep the newest.
+  // A re-run shows up as a second run with the same name in the same check
+  // suite: keep the newest. Two workflows (suites) or apps can each have a
+  // job called e.g. "test"; those stay separate so one can't hide the other.
   const byName = new Map<string, ApiCheckRun>();
   for (const r of runs) {
-    const prev = byName.get(r.name);
-    if (!prev || r.id > prev.id) byName.set(r.name, r);
+    const group = r.check_suite?.id != null ? `suite:${r.check_suite.id}` : `app:${r.app?.slug ?? ''}`;
+    const key = `${group}\0${r.name}`;
+    const prev = byName.get(key);
+    if (!prev || r.id > prev.id) byName.set(key, r);
   }
   return [...byName.values()].map((r) => ({
     id: `run-${r.id}`,

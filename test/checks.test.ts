@@ -73,6 +73,23 @@ describe('check results', () => {
     assert.equal(s.items[0].state, 'failure', 'failures listed first');
   });
 
+  test('same job name in two workflows: a failure in one is not hidden by the other', () => {
+    const s = summarize(
+      parseCheckRuns({
+        check_runs: [
+          { id: 1, name: 'test', status: 'completed', conclusion: 'failure', app: { slug: 'github-actions' }, check_suite: { id: 100 } },
+          { id: 2, name: 'test', status: 'completed', conclusion: 'success', app: { slug: 'github-actions' }, check_suite: { id: 200 } },
+          // A re-run inside the same suite still replaces the older run.
+          { id: 3, name: 'lint', status: 'completed', conclusion: 'failure', app: { slug: 'github-actions' }, check_suite: { id: 100 } },
+          { id: 4, name: 'lint', status: 'completed', conclusion: 'success', app: { slug: 'github-actions' }, check_suite: { id: 100 } },
+        ],
+      }),
+    );
+    assert.equal(s.state, 'failure');
+    assert.equal(s.total, 3);
+    assert.deepEqual(s.failed.map((f) => f.name), ['test']);
+  });
+
   test('no checks at all', () => assert.equal(summarize([]).state, 'none'));
 });
 

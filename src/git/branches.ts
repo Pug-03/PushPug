@@ -56,13 +56,53 @@ export function suggestBranchName(text: string, now = new Date()): string {
   return `task/${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
 }
 
-export type NameCheck = 'ok' | 'invalid' | 'exists';
+/**
+ * suggestBranchName plus a free name in this repo: "task/fix-login", else
+ * "task/fix-login-2", -3…; if a branch called "task" blocks every "task/…"
+ * name, the same with "task-fix-login".
+ */
+export async function availableBranchName(root: string, text: string, opts?: GitOptions): Promise<string> {
+  let base = suggestBranchName(text);
+  let name = base;
+  for (let i = 2; i < 1000; i++) {
+    const check = await checkBranchName(root, name, opts);
+    if (check === 'blocked' && base.startsWith('task/')) {
+      base = `task-${base.slice('task/'.length)}`;
+      name = base;
+      i = 1;
+      continue;
+    }
+    if (check !== 'exists') return name;
+    name = `${base}-${i}`;
+  }
+  return name;
+}
+
+/**
+ * exists  – a branch with this name, or one under it ("name/…"), exists:
+ *           adding a suffix ("name-2") fixes it
+ * blocked – a branch named like one of its parent folders exists ("task"
+ *           blocks "task/fix-login"): no suffix can fix it
+ */
+export type NameCheck = 'ok' | 'invalid' | 'exists' | 'blocked';
 
 export async function checkBranchName(root: string, name: string, opts?: GitOptions): Promise<NameCheck> {
   if (!name.trim() || /\s/.test(name)) return 'invalid';
   const r = await runGit(root, ['check-ref-format', '--branch', name], opts);
   if (r.code !== 0) return 'invalid';
-  return (await revParse(root, `refs/heads/${name}`, opts)) ? 'exists' : 'ok';
+  if (await revParse(root, `refs/heads/${name}`, opts)) return 'exists';
+  const under = await runGit(root, ['for-each-ref', '--count=1', '--format=x', `refs/heads/${name}/`], opts);
+  if (under.stdout.trim()) return 'exists';
+  const parts = name.split('/');
+  for (let i = 1; i < parts.length; i++) {
+    if (await revParse(root, `refs/heads/${parts.slice(0, i).join('/')}`, opts)) return 'blocked';
+  }
+  return 'ok';
+}
+
+/** For BranchResult: a blocked name is reported like a taken one. */
+function nameProblem(check: Exclude<NameCheck, 'ok'>): BranchResult {
+  return { kind: check === 'blocked' ? 'exists' : check };
 }
 
 /** Commits on HEAD that the main branch doesn't have yet (newest first). */
@@ -103,7 +143,7 @@ export async function fetchBase(root: string, base: TaskBase, opts?: GitOptions)
  */
 export async function startTask(root: string, name: string, base: TaskBase, opts: GitOptions = {}): Promise<BranchResult> {
   const check = await checkBranchName(root, name, opts);
-  if (check !== 'ok') return { kind: check };
+  if (check !== 'ok') return nameProblem(check);
   if (await getConflictState(root, opts)) return { kind: 'conflict' };
   const f = await fetchBase(root, base, opts);
   if (!f.ok) return { kind: 'error', code: f.code, message: f.message };
@@ -120,7 +160,7 @@ export async function startTask(root: string, name: string, base: TaskBase, opts
  */
 export async function moveCommitsToBranch(root: string, name: string, base: TaskBase, opts: GitOptions = {}): Promise<BranchResult> {
   const check = await checkBranchName(root, name, opts);
-  if (check !== 'ok') return { kind: check };
+  if (check !== 'ok') return nameProblem(check);
   if (await getConflictState(root, opts)) return { kind: 'conflict' };
   const local = await currentBranch(root, opts);
   if (local !== base.base) return { kind: 'error', code: 'other', message: `not on ${base.base}` };
