@@ -3,8 +3,7 @@ import { runGit } from '../git/exec';
 import { workingTreeFiles, getConflictState } from '../git/repo';
 import {
   taskBase,
-  suggestBranchName,
-  checkBranchName,
+  availableBranchName,
   commitsNotOnBase,
   startTask,
   moveCommitsToBranch,
@@ -256,8 +255,7 @@ export class PullRequests implements vscode.Disposable {
   private async askBranch(root: string, value = ''): Promise<{ name: string; title: string } | undefined> {
     const title = await vscode.window.showInputBox({ title: t('pr.start.title'), prompt: t('pr.start.prompt'), placeHolder: t('pr.start.placeholder'), value, ignoreFocusOut: true });
     if (title === undefined) return undefined;
-    let name = suggestBranchName(title);
-    for (let i = 2; (await checkBranchName(root, name)) === 'exists'; i++) name = `${suggestBranchName(title)}-${i}`;
+    const name = await availableBranchName(root, title);
     return { name, title: title.trim() };
   }
 
