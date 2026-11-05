@@ -57,7 +57,11 @@ export function runGit(cwd: string, args: string[], opts: GitOptions = {}): Prom
             else code = e.killed ? EXIT_TIMEOUT : EXIT_NOT_STARTED;
             if (!stderr && e.message) stderr = e.message;
           }
-          resolve({ code, stdout: String(stdout), stderr: String(stderr) });
+          const done = () => resolve({ code, stdout: String(stdout), stderr: String(stderr) });
+          // Killed for a timeout or too much output: wait until git has really exited, so it no
+          // longer holds files (index.lock, or the folder itself on Windows) when we go on.
+          if (error && child.exitCode === null && child.signalCode === null) child.once('exit', done);
+          else done();
         },
       );
       if (opts.input !== undefined) {
