@@ -859,24 +859,39 @@
 }
 .pr-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--pp-s3);
+  gap: var(--pp-s2) var(--pp-s3);
   margin-bottom: var(--pp-s3);
   padding: var(--pp-s2) var(--pp-s3);
   border-radius: var(--pp-r-md);
   border: 1px dashed var(--pp-border);
 }
 .pr-text {
-  flex: 1;
+  flex: 1 1 160px;
   min-width: 0;
   display: grid;
   gap: 2px;
   font-size: 12px;
 }
 .pr-text b {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
+  overflow-wrap: anywhere;
+}
+.pr-text b svg {
+  flex: none;
+}
+.pr-row > .btn,
+.pr-actions .btn {
+  max-width: 100%;
+  min-width: 0;
+}
+.pr-row > .btn span,
+.pr-actions .btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .pr-text span {
   color: var(--pp-text-muted);
