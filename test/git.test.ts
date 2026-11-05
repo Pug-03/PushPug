@@ -347,10 +347,9 @@ describe('edge cases found in review', () => {
   });
 
   test('runGit output too large is not reported with the timeout/network code', async () => {
-    const big = 'x\n'.repeat(512 * 1024);
-    for (let i = 0; i < 34; i++) write(t.bob, `big${i}.txt`, big);
-    await commitAll(t.bob, 'big');
-    const r = await runGit(t.bob, ['log', '-p', '-1']);
+    // A stand-in "git" that prints more than runGit keeps (32 MB). A real git is a wrapper process on
+    // Windows: killing it leaves the real git holding the temp folder, so the test couldn't clean up.
+    const r = await runGit(t.bob, ['-e', "process.stdout.write('x'.repeat(40 * 1024 * 1024))"], { gitPath: process.execPath });
     assert.equal(r.code, EXIT_OUTPUT_TOO_LARGE);
     assert.notEqual(r.code, EXIT_TIMEOUT);
   });
