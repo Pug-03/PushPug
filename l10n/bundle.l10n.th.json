@@ -219,5 +219,16 @@
   "Back on {0} with the latest code. Deleted the finished branch {1}.": "กลับมาที่ {0} พร้อมโค้ดล่าสุดแล้ว ลบ branch {1} ที่เสร็จแล้วให้ด้วย",
   "Back on {0}. Branch {1} was kept because it has work that isn't merged.": "กลับมาที่ {0} แล้ว เก็บ branch {1} ไว้เพราะมีงานที่ยังไม่ได้ merge",
   "GitHub refused the push because of a rule on this repository, for example a password or API key found in your code.": "GitHub ไม่รับ push เพราะติดกฎของ repo นี้ เช่น เจอรหัสผ่านหรือ API key อยู่ในโค้ด",
-  "Press \"Show full message\" to see which rule and which file. If it's a secret, remove it from the code and the commit (and change that password or key), then push again.": "กด \"ดูข้อความเต็ม\" เพื่อดูว่าติดกฎอะไร ไฟล์ไหน ถ้าเป็นรหัสลับ ให้ลบออกจากโค้ดและจาก commit (แล้วเปลี่ยนรหัสหรือ key นั้นด้วย) แล้วค่อย push ใหม่"
+  "Press \"Show full message\" to see which rule and which file. If it's a secret, remove it from the code and the commit (and change that password or key), then push again.": "กด \"ดูข้อความเต็ม\" เพื่อดูว่าติดกฎอะไร ไฟล์ไหน ถ้าเป็นรหัสลับ ให้ลบออกจากโค้ดและจาก commit (แล้วเปลี่ยนรหัสหรือ key นั้นด้วย) แล้วค่อย push ใหม่",
+  "🐶 PushPug {0} is out (you have {1}). Install it now?": "🐶 PushPug {0} ออกแล้ว (ตอนนี้ใช้ {1}) อัปเดตเลยไหม?",
+  "🐶 PushPug {0} is out (you have {1}). VS Code will update it by itself.": "🐶 PushPug {0} ออกแล้ว (ตอนนี้ใช้ {1}) VS Code จะอัปเดตให้เอง",
+  "You have the newest PushPug ({0}).": "ใช้ PushPug เวอร์ชันล่าสุดอยู่แล้ว ({0})",
+  "Couldn't reach GitHub to look for a new version. Try again later.": "ติดต่อ GitHub เพื่อเช็กเวอร์ชันใหม่ไม่ได้ ลองใหม่ทีหลังนะ",
+  "Installing PushPug {0}…": "กำลังติดตั้ง PushPug {0}…",
+  "PushPug {0} is installed. Reload the window to start using it.": "ติดตั้ง PushPug {0} แล้ว รีโหลดหน้าต่างเพื่อเริ่มใช้",
+  "Couldn't install the update. You can download it from the release page instead.": "ติดตั้งอัปเดตไม่สำเร็จ โหลดเองจากหน้า release ได้",
+  "Install update": "อัปเดตเลย",
+  "What's new": "มีอะไรใหม่",
+  "Skip this version": "ข้ามเวอร์ชันนี้",
+  "Reload now": "รีโหลดเลย"
 }

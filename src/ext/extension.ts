@@ -19,6 +19,7 @@ import { ChecksWatcher } from './checks';
 import { PullRequests } from './pullRequests';
 import { SettingsPage, type FrequencyDeps } from './settingsPage';
 import { Avatars } from './avatars';
+import { Updates } from './updates';
 import { MODES, type Mode } from '../core/frequency';
 
 /** The setup wizard announces background changes itself. */
@@ -99,6 +100,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   cmd('pushpug.snooze', () => alerts.snooze());
   cmd('pushpug.unsnooze', () => alerts.unsnooze());
   cmd('pushpug.testNotification', () => sendTestNotification(desktop));
+  const updates = new Updates(context, log);
+  context.subscriptions.push(updates);
+  cmd('pushpug.checkForUpdates', () => updates.check(true));
   // Not in the Command Palette: lets the smoke test see what the team view reported.
   cmd('pushpug._diag', () => team.diag);
   cmd('pushpug.openSettings', (section?: string) => SettingsPage.show(context, freqDeps, desktop, typeof section === 'string' ? section : undefined));

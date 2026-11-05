@@ -65,5 +65,7 @@
   "cfg.pullRequests.workflow": "commit บน main จะส่งให้ทีมแบบไหน แต่ละคนเลือกเองได้ คนหนึ่ง push เข้า main ตรง ๆ อีกคนใช้ pull request ตลอดก็ได้",
   "cfg.pullRequests.workflow.ask": "ถามทุกครั้ง: หน้า My Team มีให้เลือกทั้ง Push เข้า main และส่งเป็น pull request",
   "cfg.pullRequests.workflow.direct": "Push เข้า main ตรง ๆ ไม่เตือนเรื่อง pull request",
-  "cfg.pullRequests.workflow.pullRequest": "ใช้ pull request ตลอด: commit บน main จะถูกย้ายไป branch งานแล้วส่งให้ทีมดู"
+  "cfg.pullRequests.workflow.pullRequest": "ใช้ pull request ตลอด: commit บน main จะถูกย้ายไป branch งานแล้วส่งให้ทีมดู",
+  "cmd.checkForUpdates": "Check for Updates · เช็กเวอร์ชันใหม่",
+  "cfg.updates.check": "วันละครั้ง เช็กบน GitHub ว่ามี PushPug เวอร์ชันใหม่ไหม แล้วเสนอติดตั้งให้ (เฉพาะที่ติดตั้งจากไฟล์ `.vsix` ถ้าติดตั้งจาก Marketplace จะอัปเดตเอง)"
 }

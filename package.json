@@ -154,6 +154,11 @@
         "title": "%cmd.openPullRequest%",
         "category": "PushPug",
         "icon": "$(git-pull-request)"
+      },
+      {
+        "command": "pushpug.checkForUpdates",
+        "title": "%cmd.checkForUpdates%",
+        "category": "PushPug"
       }
     ],
     "menus": {
@@ -488,6 +493,12 @@
           "default": true,
           "markdownDescription": "%cfg.pullRequests.notifyTeam%",
           "order": 32
+        },
+        "pushpug.updates.check": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "%cfg.updates.check%",
+          "order": 33
         }
       }
     }

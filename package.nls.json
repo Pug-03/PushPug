@@ -65,5 +65,7 @@
   "cfg.pullRequests.workflow": "How your commits on main reach the team. Everyone picks their own: one person can push straight to main while a teammate always uses pull requests.",
   "cfg.pullRequests.workflow.ask": "Ask each time: My Team offers both Push to main and Send as pull request.",
   "cfg.pullRequests.workflow.direct": "Push straight to main. No pull request reminders.",
-  "cfg.pullRequests.workflow.pullRequest": "Always use pull requests: commits made on main are moved to a task branch and sent for review."
+  "cfg.pullRequests.workflow.pullRequest": "Always use pull requests: commits made on main are moved to a task branch and sent for review.",
+  "cmd.checkForUpdates": "Check for Updates · เช็กเวอร์ชันใหม่",
+  "cfg.updates.check": "Once a day, look on GitHub for a newer PushPug and offer to install it. Only for copies installed from a `.vsix` file; the Marketplace updates its own."
 }

@@ -469,5 +469,16 @@
   "wv.team.pr.update": "Get the latest {0}",
   "wv.team.pr.back": "Back to {0}",
   "gerr.ruleViolation.title": "GitHub refused the push because of a rule on this repository, for example a password or API key found in your code.",
-  "gerr.ruleViolation.fix": "Press \"Show full message\" to see which rule and which file. If it's a secret, remove it from the code and the commit (and change that password or key), then push again."
+  "gerr.ruleViolation.fix": "Press \"Show full message\" to see which rule and which file. If it's a secret, remove it from the code and the commit (and change that password or key), then push again.",
+  "upd.available": "🐶 PushPug {0} is out (you have {1}). Install it now?",
+  "upd.availableStore": "🐶 PushPug {0} is out (you have {1}). VS Code will update it by itself.",
+  "upd.upToDate": "You have the newest PushPug ({0}).",
+  "upd.failed": "Couldn't reach GitHub to look for a new version. Try again later.",
+  "upd.installing": "Installing PushPug {0}…",
+  "upd.installed": "PushPug {0} is installed. Reload the window to start using it.",
+  "upd.installFailed": "Couldn't install the update. You can download it from the release page instead.",
+  "upd.btn.install": "Install update",
+  "upd.btn.notes": "What's new",
+  "upd.btn.skip": "Skip this version",
+  "upd.btn.reload": "Reload now"
 }
