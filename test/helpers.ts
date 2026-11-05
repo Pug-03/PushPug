@@ -36,7 +36,12 @@ export async function makeTeam(): Promise<Team> {
   await git(alice, ['push', '-q', '-u', 'origin', 'main']);
   await git(dir, ['clone', '-q', remote, bob]);
   await setIdentity(bob, 'Bob Tan', 'bob@example.com');
-  return { dir, remote, alice, bob, // Windows: a git that was just killed can hold the folder for a moment (EBUSY); retry for a few seconds.
+  return {
+    dir,
+    remote,
+    alice,
+    bob,
+    // Windows: a git that was just killed can hold the folder for a moment (EBUSY); retry for a few seconds.
     cleanup: () => rmSync(dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 }),
   };
 }
