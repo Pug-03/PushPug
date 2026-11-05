@@ -43,6 +43,8 @@ to fix it. It's made for people who are new to Git, and for everyone who'd rathe
 - **Push without surprises** — PushPug checks the remote first
 - **Pull requests made easy** — start a task on its own branch, send it for review in one click, and hear when
   it's merged or conflicts with main
+- **Your way to main** — push straight to `main` or always go through a pull request; each teammate picks their own
+- **Pug tells you about new versions** — and installs them for you in one click
 - **Fast or frugal** — from every 10 s to battery saver, plus do-not-disturb hours
 
 ---
@@ -347,7 +349,7 @@ The wizard opens by itself right after installing. To open it again later: press
 | You installed it… | To update |
 |---|---|
 | **from the Marketplace / Open VSX** (B) | Nothing to do — VS Code updates it by itself. |
-| **from a `.vsix` file** (A) | Download the newer `.vsix` from [Releases](https://github.com/Pug-03/PushPug/releases/latest) (A1–A2) and install it the same way (A3–A7). VS Code replaces the old version; your settings stay. Then press `⇧⌘P` / `Ctrl+Shift+P` and run **Developer: Reload Window**. |
+| **from a `.vsix` file** (A) | PushPug looks for a new version once a day and tells you: press **Install update**, then **Reload now**. To look right away, run **PushPug: Check for Updates**. Your settings stay. (By hand: download the newer `.vsix` from [Releases](https://github.com/Pug-03/PushPug/releases/latest) and install it the same way as in A3–A7, then **Developer: Reload Window**.) |
 | **by building it** (C) | In the `PushPug` folder: `git pull`, `npm install`, `npm run package`, then install the new `.vsix`. |
 
 **Get an e-mail when there's a new version:** on the [GitHub page](https://github.com/Pug-03/PushPug) click
@@ -625,22 +627,30 @@ PushPug also tells you when a teammate opens a pull request.
 </td>
 </tr>
 
-<tr><td colspan="2"><h3>Committed on main by mistake</h3></td></tr>
+<tr><td colspan="2"><h3>Commits on main not pushed yet</h3></td></tr>
 <tr>
 <td valign="top">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/team-prUnsent-dark.png">
-  <img src="docs/screenshots/en/team-prUnsent-light.png" width="230" alt="Two commits on main not sent yet">
+  <img src="docs/screenshots/en/team-prUnsent-light.png" width="230" alt="Two commits on main not pushed yet, with Push to main and Send as pull request">
 </picture>
 </td>
 <td valign="top">
 
-**What it means:** you have commits on `main` that aren't pushed. If `main` only accepts pull requests,
-pushing them is refused (GitHub says *"Changes must be made through a pull request"*).
+**What it means:** you have commits on `main` that aren't pushed yet. Some people push straight to `main`;
+others send everything as a pull request first. PushPug lets each person choose (PushPug Settings → GitHub, or
+`pushpug.pullRequests.workflow`):
 
-**What to do:** press **Send for review** (or **Send for review instead** on the push error). PushPug moves
-the commits to a new branch, puts your `main` back in line with the team's, and opens the pull request.
-Nothing is lost.
+| Choice | What My Team shows |
+|---|---|
+| **Ask each time** *(default)* | **Push to main** and **Send as pull request** |
+| **Straight to main** | nothing extra: push as usual, no pull request reminders |
+| **Always a pull request** | **Send for review** |
+
+**What to do:** press **Push to main**, or **Send as pull request**. Sending moves the commits to a new
+branch, puts your `main` back in line with the team's, and opens the pull request. Nothing is lost. If `main`
+only accepts pull requests, a push is refused (GitHub says *"Changes must be made through a pull request"*)
+and PushPug offers **Send for review instead**.
 
 </td>
 </tr>
@@ -738,6 +748,7 @@ notifications meanwhile; the status bar keeps updating and anything you missed i
 | `pushpug.pullRequests.enabled` | on | Start New Task / Send for Review, pull request alerts |
 | `pushpug.pullRequests.workflow` | ask | how your commits on main reach the team: `ask` (both buttons), `direct` (push straight to main, no reminders) or `pullRequest` (always via pull request). Each person picks their own |
 | `pushpug.pullRequests.notifyTeam` | on | tell me when a teammate opens a pull request |
+| `pushpug.updates.check` | on | once a day, look on GitHub for a newer PushPug (only for copies installed from a `.vsix`) |
 | `pushpug.language` / `pushpug.theme` | auto · system | Thai or English; light, dark or match VS Code |
 
 ## Privacy
@@ -748,6 +759,8 @@ notifications meanwhile; the status bar keeps updating and anything you missed i
   go through GitHub's API with **VS Code's built-in GitHub sign-in**. PushPug never asks you to paste a token and never
   saves one. While tests are running it asks every 20–30 s, stops when they're done, and slows down by itself
   near GitHub's rate limit.
+- **Update check:** once a day PushPug asks GitHub for the latest PushPug release (no sign-in, nothing about
+  you or your code is sent). Copies from the Marketplace skip it. Turn it off with `pushpug.updates.check`.
 - The optional background task only runs `git fetch` (and `gh api` for test results if you use the GitHub
   CLI). It never pulls or changes your files.
 

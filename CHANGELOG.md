@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- **Pug tells you about new versions:** copies installed from a `.vsix` look on GitHub once a day and offer
+  **Install update** (downloads it, installs it, offers a reload). New command **PushPug: Check for Updates**,
+  setting `pushpug.updates.check`. Marketplace copies are left to VS Code
+- PushPug Settings → GitHub: choose how commits on main reach the team (ask / straight to main / always a pull request)
+- Fix: uncommitted work could be lost — after an autostash conflict thrown away with `git reset --hard`, the stash
+  holding that work was dropped. It's now kept unless the work is really still in the working copy
+- Fix: a cherry-pick or revert conflict was mistaken for an autostash conflict when an old autostash was left over
+- Fix: a clone of an empty repo never noticed the teammate's first push
+- Fix: two GitHub checks with the same name in different workflows were merged, which could hide a failure
+- Fix: Start New Task failed when a branch called `task` existed; a free name is now found
+- Fix: Push (check first) failed when the local branch name differed from its upstream
+- Fix: "403" anywhere in an error (e.g. a repo URL) was reported as a sign-in problem
+- Fix: Undo merge vanished in repos with tens of thousands of untracked files, and after a second pull that was up to date
+- Fix: pull request notices (merged, closed, conflicts, teammate opened one) were lost for good during quiet hours
+- Fix: Windows toasts — a curly quote in a commit subject or name could break out of PowerShell and run code;
+  data now goes in as base64
+- Fix: `vscode://` links only act on repos PushPug already watches, and paths with `+` or `&` work
+- Fix: Windows background task with a non-English (e.g. Thai) user name never ran
+- Fix: the macOS background job's `launchd.log` grew forever; it's gone
+- Fix: a background alert stayed on screen after you pulled while VS Code was closed
+- Fix: an alert whose text started with "-" was dropped by alerter
+- "Send for review" is hidden from the Source Control bar when you push straight to main
 - My Team fits a narrow side bar (e.g. a MacBook with the side bar dragged to its minimum): smaller Pug and padding, commit
   badges move under the text, author and time no longer break one letter per line, buttons and file names don't get cut off
 - Pick how your commits on main reach the team with `pushpug.pullRequests.workflow`: **ask** (new default: My Team offers both
