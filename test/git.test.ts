@@ -1,7 +1,7 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeTeam, write, read, commitAll, commitAndPush, editLine, type Team } from './helpers';
-import { git, runGit } from '../src/git/exec';
+import { git, runGit, EXIT_OUTPUT_TOO_LARGE, EXIT_TIMEOUT } from '../src/git/exec';
 import {
   checkRepo,
   pull,
@@ -10,7 +10,11 @@ import {
   finishMerge,
   topStash,
   overlappingFiles,
+  classifyError,
 } from '../src/git/repo';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 let t: Team;
 beforeEach(async () => {
@@ -276,5 +280,78 @@ describe('pull: "ดึงโค้ดมารวม"', () => {
     const s = await checkRepo(t.bob, { fetch: true });
     assert.deepEqual(s.overlap, ['งาน ใหม่.txt']);
     assert.equal(s.incoming[0].subject, 'เพิ่มไฟล์ภาษาไทย');
+  });
+});
+
+describe('edge cases found in review', () => {
+  test('autostash conflict thrown away with reset --hard: the stash is kept, not dropped', async () => {
+    editLine(t.alice, 'app.txt', 3, 'alice line 3');
+    await commitAndPush(t.alice, 'Alice edits line 3');
+    editLine(t.bob, 'app.txt', 3, 'bob precious line 3');
+    const r = await pull(t.bob);
+    assert.equal(r.kind, 'autostashConflict');
+    if (r.kind !== 'autostashConflict') return;
+    await git(t.bob, ['reset', '-q', '--hard']);
+    assert.equal(await getConflictState(t.bob), null);
+    assert.equal(await dropAutostashIfResolved(t.bob, r.stashSha), false);
+    const stash = await topStash(t.bob);
+    assert.equal(stash?.sha, r.stashSha);
+    assert.match(await git(t.bob, ['stash', 'show', '-p', 'stash@{0}']), /bob precious line 3/);
+  });
+
+  test('a stale autostash entry does not make a cherry-pick conflict look like an autostash conflict', async () => {
+    editLine(t.alice, 'app.txt', 2, 'alice line 2');
+    await commitAndPush(t.alice, 'Alice edits line 2');
+    editLine(t.bob, 'app.txt', 2, 'bob line 2');
+    assert.equal((await pull(t.bob)).kind, 'autostashConflict');
+    await git(t.bob, ['reset', '-q', '--hard']); // the autostash entry stays behind
+    await git(t.bob, ['checkout', '-q', '-b', 'side', 'HEAD~1']);
+    editLine(t.bob, 'app.txt', 2, 'side line 2');
+    await commitAll(t.bob, 'side');
+    await git(t.bob, ['checkout', '-q', 'main']);
+    assert.notEqual((await runGit(t.bob, ['cherry-pick', 'side'])).code, 0);
+    const c = await getConflictState(t.bob);
+    assert.equal(c?.kind, 'other');
+    assert.deepEqual(c?.files, ['app.txt']);
+  });
+
+  test('clone of an empty remote sees the first push', async () => {
+    const d = mkdtempSync(join(tmpdir(), 'pushpug-empty-'));
+    const remote = join(d, 'r.git');
+    await git(d, ['init', '-q', '--bare', '-b', 'main', remote]);
+    await git(d, ['clone', '-q', remote, join(d, 'bob')]);
+    await git(d, ['clone', '-q', remote, join(d, 'alice')]);
+    const a = join(d, 'alice');
+    await git(a, ['config', 'user.email', 'a@example.com']);
+    await git(a, ['config', 'user.name', 'A']);
+    write(a, 'x.txt', 'x');
+    await commitAll(a, 'first');
+    await git(a, ['push', '-q', 'origin', 'main']);
+    const s = await checkRepo(join(d, 'bob'), { fetch: true });
+    assert.equal(s.upstream, 'origin/main');
+    assert.equal(s.state, 'behind');
+    assert.equal(s.behind, 1);
+    assert.equal(s.incoming[0]?.subject, 'first');
+    assert.deepEqual(await pull(join(d, 'bob')), { kind: 'ok', pulled: 1, files: ['x.txt'], autostashed: false });
+    rmSync(d, { recursive: true, force: true });
+  });
+
+  test('"403" inside a repo URL is not an auth error; an HTTP 403 is', () => {
+    assert.equal(classifyError("fatal: unable to access 'https://github.com/acme/web403.git/': Could not resolve host: github.com"), 'network');
+    assert.equal(classifyError("fatal: unable to access 'https://github.com/acme/web.git/': The requested URL returned error: 403"), 'auth');
+  });
+
+  test('runGit resolves (never rejects) when git cannot be started', async () => {
+    const r = await runGit(t.bob, ['status', 'bad\0arg']);
+    assert.notEqual(r.code, 0);
+  });
+
+  test('runGit output too large is not reported with the timeout/network code', async () => {
+    const big = 'x\n'.repeat(512 * 1024);
+    for (let i = 0; i < 34; i++) write(t.bob, `big${i}.txt`, big);
+    await commitAll(t.bob, 'big');
+    const r = await runGit(t.bob, ['log', '-p', '-1']);
+    assert.equal(r.code, EXIT_OUTPUT_TOO_LARGE);
+    assert.notEqual(r.code, EXIT_TIMEOUT);
   });
 });

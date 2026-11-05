@@ -1,5 +1,7 @@
 // Pure git logic for PushPug. No `vscode` imports here so it can be tested
 // against real temporary repositories and reused by the background worker.
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { git, runGit, splitZ, type GitOptions } from './exec';
 
 export interface Commit {
@@ -72,6 +74,13 @@ export async function remoteOfBranch(root: string, branch: string, opts?: GitOpt
   return r.code === 0 && remote && remote !== '.' ? remote : null;
 }
 
+/** branch.<b>.remote (a real remote) and branch.<b>.merge are both set. */
+async function upstreamConfigured(root: string, branch: string, opts?: GitOptions): Promise<boolean> {
+  if (!(await remoteOfBranch(root, branch, opts))) return false;
+  const r = await runGit(root, ['config', '--get', `branch.${branch}.merge`], opts);
+  return r.code === 0 && r.stdout.trim().length > 0;
+}
+
 export async function revParse(root: string, ref: string, opts?: GitOptions): Promise<string | null> {
   const r = await runGit(root, ['rev-parse', '-q', '--verify', `${ref}^{commit}`], opts);
   return r.code === 0 ? r.stdout.trim() : null;
@@ -79,7 +88,7 @@ export async function revParse(root: string, ref: string, opts?: GitOptions): Pr
 
 export function classifyError(stderr: string): ErrorCode {
   const s = stderr.toLowerCase();
-  if (/authentication failed|could not read username|permission denied \(publickey|terminal prompts disabled|403|access denied/.test(s)) return 'auth';
+  if (/authentication failed|could not read username|permission denied \(publickey|terminal prompts disabled|returned error: 40[13]|access denied/.test(s)) return 'auth';
   if (/could not resolve host|unable to access|connection timed out|network is unreachable|connection refused|operation timed out|failed to connect/.test(s)) return 'network';
   if (/please tell me who you are|empty ident|unable to auto-detect email/.test(s)) return 'identity';
   if (/index\.lock|another git process/.test(s)) return 'locked';
@@ -142,9 +151,23 @@ export async function getConflictState(root: string, opts?: GitOptions): Promise
     return { kind: 'merge', files, mergeAutostash };
   }
   if (files.length === 0) return null;
+  // A cherry-pick, revert or rebase stopped on a conflict: an "autostash"
+  // entry on top of the stash is then a leftover, not the cause.
+  if (await otherOperationInProgress(root, opts)) return { kind: 'other', files };
   const stash = await topStash(root, opts);
   if (stash && stash.subject === 'autostash') return { kind: 'autostash', files, stashSha: stash.sha };
   return { kind: 'other', files };
+}
+
+async function otherOperationInProgress(root: string, opts?: GitOptions): Promise<boolean> {
+  const names = ['CHERRY_PICK_HEAD', 'REVERT_HEAD', 'rebase-merge', 'rebase-apply'];
+  const r = await runGit(root, ['rev-parse', ...names.flatMap((n) => ['--git-path', n])], opts);
+  if (r.code !== 0) return false;
+  return r.stdout
+    .split('\n')
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .some((p) => existsSync(resolve(root, p)));
 }
 
 /** Our side of the comparison: uncommitted, untracked and committed-but-not-pushed files. */
@@ -208,20 +231,33 @@ export async function checkRepo(root: string, opts: CheckOptions = {}): Promise<
       return snap;
     }
     snap.upstream = await upstreamOf(root, opts);
+    let fetched = false;
+    if (!snap.upstream && opts.fetch && (await upstreamConfigured(root, snap.branch, opts))) {
+      // Tracking is configured but the remote-tracking ref doesn't exist yet
+      // (e.g. a clone of an empty repo before the first push): fetch, then look again.
+      const f = await fetchUpstream(root, opts);
+      fetched = true;
+      if (!f.ok) snap.error = { code: f.code, message: f.message };
+      snap.upstream = await upstreamOf(root, opts);
+    }
     if (!snap.upstream) {
       snap.state = snap.conflict ? 'conflict' : 'noUpstream';
       return snap;
     }
-    if (opts.fetch) {
+    if (opts.fetch && !fetched) {
       const f = await fetchUpstream(root, opts);
       if (!f.ok) snap.error = { code: f.code, message: f.message };
     }
     snap.upstreamSha = await revParse(root, '@{u}', opts);
-    const counts = (await git(root, ['rev-list', '--left-right', '--count', 'HEAD...@{u}'], opts)).trim().split(/\s+/);
+    // No commit of our own yet (a clone of an empty repo): everything upstream is incoming.
+    const unborn = !(await revParse(root, 'HEAD', opts));
+    const counts = unborn
+      ? ['0', (await git(root, ['rev-list', '--count', '@{u}'], opts)).trim()]
+      : (await git(root, ['rev-list', '--left-right', '--count', 'HEAD...@{u}'], opts)).trim().split(/\s+/);
     snap.ahead = Number(counts[0]) || 0;
     snap.behind = Number(counts[1]) || 0;
     if (snap.behind > 0) {
-      snap.incoming = await commitsBetween(root, 'HEAD..@{u}', 50, opts);
+      snap.incoming = await commitsBetween(root, unborn ? '@{u}' : 'HEAD..@{u}', 50, opts);
       snap.overlap = await overlappingFiles(root, opts);
     }
     if (snap.conflict) snap.state = 'conflict';
@@ -304,6 +340,12 @@ async function interpretMergeOutcome(
     return { kind: 'error', code: code === 124 ? 'network' : classifyError(output), message: output.trim() };
   }
   const after = await revParse(root, 'HEAD', opts);
+  if (!before && after) {
+    // First pull into a clone of an empty repo: every commit and file is new.
+    const pulled = Number((await git(root, ['rev-list', '--count', after], opts)).trim()) || 0;
+    const files = splitZ(await git(root, ['ls-tree', '-r', '--name-only', '-z', after], opts));
+    return { kind: 'ok', pulled, files, autostashed: hadLocalChanges };
+  }
   if (!before || before === after) return { kind: 'upToDate' };
   const pulled = Number((await git(root, ['rev-list', '--count', `${before}..${after}`], opts)).trim()) || 0;
   const files = splitZ(await git(root, ['diff', '--name-only', '-z', before, after!], opts));
@@ -314,6 +356,9 @@ async function interpretMergeOutcome(
  * After an autostash conflict, once every file is staged (no unmerged
  * entries left) the stash entry is redundant: drop it — but only if the top
  * stash is still the "autostash" entry, and the one we expect when known.
+ * "No conflicts left" is also what a `git reset --hard` looks like, so the
+ * entry is dropped only when the working copy still carries some of the
+ * stashed work (one of its files differs from HEAD); otherwise it is kept.
  */
 export async function dropAutostashIfResolved(root: string, expectedSha?: string, opts?: GitOptions): Promise<boolean> {
   if ((await unmergedFiles(root, opts)).length > 0) return false;
@@ -321,8 +366,18 @@ export async function dropAutostashIfResolved(root: string, expectedSha?: string
   const stash = await topStash(root, opts);
   if (!stash || stash.subject !== 'autostash') return false;
   if (expectedSha && stash.sha !== expectedSha) return false;
+  if (!(await stashWorkStillPresent(root, stash.sha, opts))) return false;
   const r = await runGit(root, ['stash', 'drop', '--quiet', 'stash@{0}'], opts);
   return r.code === 0;
+}
+
+/** Does any file the stash changed differ from HEAD (staged or not)? When unsure: no. */
+async function stashWorkStillPresent(root: string, stashSha: string, opts?: GitOptions): Promise<boolean> {
+  const stashed = await runGit(root, ['diff', '--name-only', '-z', '--no-renames', `${stashSha}^1`, stashSha], opts);
+  const changed = await runGit(root, ['diff', '--name-only', '-z', '--no-renames', 'HEAD'], opts);
+  if (stashed.code !== 0 || changed.code !== 0) return false;
+  const changedSet = new Set(splitZ(changed.stdout));
+  return splitZ(stashed.stdout).some((f) => changedSet.has(f));
 }
 
 /** Commit a merge whose conflicts are all resolved and staged. */
