@@ -5,3 +5,4 @@ out-test/
 .DS_Store
 docs/preview/.tmp/
 .vscode-test/
+.claude/worktrees/

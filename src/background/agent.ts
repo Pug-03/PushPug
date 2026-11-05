@@ -85,12 +85,20 @@ export function buildPlist(p: AgentPaths): string {
   <key>AbandonProcessGroup</key>
   <true/>
   <key>StandardOutPath</key>
-  <string>${xml(join(p.storageDir, 'launchd.log'))}</string>
+  <string>/dev/null</string>
   <key>StandardErrorPath</key>
-  <string>${xml(join(p.storageDir, 'launchd.log'))}</string>
+  <string>/dev/null</string>
 </dict>
 </plist>
 `;
+}
+
+/**
+ * launcher.vbs as written to disk: UTF-16 LE with a BOM. wscript reads a file without a BOM in the
+ * system code page, which garbles non-ASCII paths (e.g. a Thai Windows user name).
+ */
+export function vbsFileBytes(p: AgentPaths): Buffer {
+  return Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(buildVbs(p), 'utf16le')]);
 }
 
 /** VBScript launcher: sets ELECTRON_RUN_AS_NODE and starts the worker with no window. */
@@ -169,7 +177,7 @@ export async function installAgent(p: AgentPaths, run: Runner = realRunner): Pro
   if (p.platform === 'win32') {
     mkdirSync(p.storageDir, { recursive: true });
     const vbs = join(p.storageDir, 'launcher.vbs');
-    writeFileSync(vbs, buildVbs(p), 'utf8');
+    writeFileSync(vbs, vbsFileBytes(p));
     const taskXml = join(p.storageDir, 'task.xml');
     // Task Scheduler wants UTF-16 LE with a BOM.
     writeFileSync(taskXml, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(buildTaskXml(vbs), 'utf16le')]));

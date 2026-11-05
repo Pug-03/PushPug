@@ -57,7 +57,9 @@ describe('background job registration', () => {
     const p = { ...paths('win32'), nodeExe: 'C:\\Users\\me\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe' };
     const { calls, run } = fakeRunner();
     await installAgent(p, run);
-    const vbs = readFileSync(join(p.storageDir, 'launcher.vbs'), 'utf8');
+    const vbsBuf = readFileSync(join(p.storageDir, 'launcher.vbs'));
+    assert.deepEqual([...vbsBuf.subarray(0, 2)], [0xff, 0xfe], 'UTF-16 LE with a BOM, so non-ASCII paths survive');
+    const vbs = vbsBuf.subarray(2).toString('utf16le');
     assert.match(vbs, /ELECTRON_RUN_AS_NODE"\) = "1"/);
     assert.match(vbs, /, 0, False/); // 0 = hidden window
     const xmlBuf = readFileSync(join(p.storageDir, 'task.xml'));
@@ -143,6 +145,20 @@ describe('background worker', () => {
     await commitAndPush(t.alice, 'Second push');
     runWorker();
     assert.equal(events('notify').length, 2, 'a newer commit is announced again');
+  });
+
+  test('takes its alert off the screen once the new commits were pulled', async () => {
+    write(t.alice, 'x.txt', 'x');
+    await commitAndPush(t.alice, 'new page');
+    runWorker();
+    assert.equal(events('notify').length, 1);
+    runWorker();
+    assert.equal(events('remove').length, 0, 'still behind: the alert stays');
+    await git(t.bob, ['pull']);
+    runWorker();
+    assert.equal(events('remove').length, 1);
+    runWorker();
+    assert.equal(events('remove').length, 1, 'removed only once');
   });
 
   test('stays quiet while VS Code has the repo open (fresh heartbeat)', async () => {

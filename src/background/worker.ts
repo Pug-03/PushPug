@@ -10,7 +10,7 @@ import { spawn, execFile } from 'node:child_process';
 import { existsSync, readdirSync, rmSync, writeFileSync, appendFileSync, statSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
-import { SharedStore, readJson, writeJsonAtomic, repoGroupId, type WorkerConfig } from '../core/storage';
+import { SharedStore, readJson, writeJsonAtomic, repoGroupId, repoKey, type WorkerConfig } from '../core/storage';
 import { checkRepo } from '../git/repo';
 import { setDefaultGitPath } from '../git/exec';
 import { summarizeIncoming } from '../core/messages';
@@ -113,6 +113,13 @@ async function notify(storageDir: string, cfg: WorkerConfig, root: string, note:
   child.unref();
 }
 
+async function removeAlert(cfg: WorkerConfig, root: string): Promise<void> {
+  if (TEST_LOG) return testRecord({ type: 'remove', root });
+  await new DesktopNotifier({ alerterPath: cfg.alerterPath, windowsAppId: cfg.windowsAppId, iconPath: cfg.iconPath, macBundleId: cfg.macBundleId })
+    .remove(repoGroupId(root))
+    .catch(() => undefined);
+}
+
 async function runAlert(payloadFile: string): Promise<void> {
   const { note, cfg } = JSON.parse(readFileSync(payloadFile, 'utf8')) as { note: DesktopNote; cfg: WorkerConfig; root: string };
   rmSync(payloadFile, { force: true });
@@ -176,6 +183,11 @@ export async function runOnce(storageDir: string): Promise<void> {
     writeJsonAtomic(store.stateFile, { lastCheckAt: Date.now() });
     testRecord({ type: 'run', reason: due.reason });
     if (cfg.gitPath && existsSync(cfg.gitPath)) setDefaultGitPath(cfg.gitPath);
+    // Repos whose "new commits" alert this worker put on screen.
+    const shownFile = join(storageDir, 'bg-alerts.json');
+    const shown = new Set(readJson<string[]>(shownFile, []));
+    // Older versions sent launchd's output (mostly Electron noise) here and it only grew.
+    rmSync(join(storageDir, 'launchd.log'), { force: true });
     for (const root of cfg.repos) {
       if (!existsSync(join(root, '.git'))) continue;
       // VS Code has this repo open: the extension already watches and alerts.
@@ -185,7 +197,15 @@ export async function runOnce(storageDir: string): Promise<void> {
       }
       const snap = await checkRepo(root, { fetch: true });
       if (snap.error) log(storageDir, `${root}: ${snap.error.code} ${snap.error.message.split('\n')[0]}`);
-      if (snap.state !== 'behind' || !snap.upstreamSha) continue;
+      if (snap.state !== 'behind' || !snap.upstreamSha) {
+        // Pulled (e.g. from a terminal) while VS Code was closed: take the old alert off the screen.
+        if (!snap.error && shown.has(repoKey(root))) {
+          shown.delete(repoKey(root));
+          writeJsonAtomic(shownFile, [...shown]);
+          await removeAlert(cfg, root);
+        }
+        continue;
+      }
       // Do-not-disturb / snooze: don't claim it, so it's announced once the quiet time is over.
       if (isQuiet(cfg.quiet, store.snoozeUntil(), new Date())) {
         testRecord({ type: 'quiet', root });
@@ -196,6 +216,8 @@ export async function runOnce(storageDir: string): Promise<void> {
       const checks = cfg.checksViaGh ? await checksLine(cfg, root, snap.upstreamSha) : undefined;
       if (checks) s.body = `${s.body} · ${checks}`;
       log(storageDir, `${root}: ${snap.behind} new commit(s), notifying`);
+      shown.add(repoKey(root));
+      writeJsonAtomic(shownFile, [...shown]);
       await notify(storageDir, cfg, root, {
         group: repoGroupId(root),
         title: s.title,

@@ -32,9 +32,10 @@ export class PushPugUriHandler implements vscode.UriHandler {
 
   async handleUri(uri: vscode.Uri): Promise<void> {
     const action = uri.path.replace(/^\//, '') as UriAction;
-    const repo = new URLSearchParams(uri.query).get('repo');
-    if (!repo || !['pull', 'show', 'open'].includes(action)) return;
+    if (!['pull', 'show', 'open'].includes(action)) return;
     await this.repos.discover();
+    const repo = this.knownRepo(uri.query);
+    if (!repo) return;
     if (this.repos.get(repo)) {
       await this.run(this.repos.get(repo)!.root, action);
       return;
@@ -42,6 +43,25 @@ export class PushPugUriHandler implements vscode.UriHandler {
     writeJsonAtomic(this.pendingFile, { repo, action, ts: Date.now() } satisfies Pending);
     const emptyWindow = !vscode.workspace.workspaceFolders?.length;
     await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(repo), { forceNewWindow: !emptyWindow });
+  }
+
+  /**
+   * The repo a link points at — only a repo PushPug already watches, so a crafted link can't
+   * open or pull an arbitrary folder. VS Code hands over the query already decoded; decoding it
+   * again (URLSearchParams) would turn "+" into a space and cut paths at "&", so the rest of the
+   * query after "repo=" is the path as-is (an encoded form is accepted too).
+   */
+  private knownRepo(query: string): string | undefined {
+    const m = /(?:^|&)repo=(.*)$/s.exec(query);
+    if (!m) return undefined;
+    const candidates = [m[1]];
+    try {
+      candidates.push(decodeURIComponent(m[1]));
+    } catch {
+      // not encoded
+    }
+    const watched = new Set([...this.repos.list().map((e) => repoKey(e.root)), ...(this.store.readConfig()?.repos ?? []).map(repoKey)]);
+    return candidates.find((c) => watched.has(repoKey(c)));
   }
 
   /** Called on activation and whenever the window gains focus. */

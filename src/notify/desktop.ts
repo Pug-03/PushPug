@@ -74,9 +74,12 @@ export function buildToastXml(n: DesktopNote): string {
   );
 }
 
-/** PowerShell source; data goes in as single-quoted literals ('' escapes '). */
+/**
+ * PowerShell expression for a string. Data goes in as base64, never as a quoted literal: PowerShell
+ * also ends single-quoted strings at the curly quotes ‘ ’ ‚ ‛, so a commit subject could break out.
+ */
 function psLiteral(s: string): string {
-  return `'${s.replace(/'/g, "''")}'`;
+  return `[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${Buffer.from(s, 'utf8').toString('base64')}'))`;
 }
 
 export function buildToastScript(xml: string, tag: string, appId: string): string {
@@ -175,14 +178,14 @@ export class DesktopNotifier {
     const m = this.alerterModern;
     const f = (modern: string, legacy: string) => (m ? modern : legacy);
     const args = [
-      f('--title', '-title'), n.title,
-      f('--message', '-message'), n.message,
-      f('--actions', '-actions'), n.primaryLabel,
-      f('--close-label', '-closeLabel'), n.laterLabel,
+      f('--title', '-title'), notFlag(n.title),
+      f('--message', '-message'), notFlag(n.message),
+      f('--actions', '-actions'), notFlag(n.primaryLabel),
+      f('--close-label', '-closeLabel'), notFlag(n.laterLabel),
       f('--group', '-group'), n.group,
       f('--timeout', '-timeout'), '0',
     ];
-    if (n.subtitle) args.push(f('--subtitle', '-subtitle'), n.subtitle);
+    if (n.subtitle) args.push(f('--subtitle', '-subtitle'), notFlag(n.subtitle));
     if (this.opts.macBundleId) args.push(f('--sender', '-sender'), this.opts.macBundleId);
     if (this.opts.iconPath) args.push(f('--app-icon', '-appIcon'), this.opts.iconPath);
     return args;
@@ -208,11 +211,11 @@ export class DesktopNotifier {
     const base = ['--app-name=PushPug', '--urgency=critical'];
     if (this.opts.iconPath) base.push(`--icon=${this.opts.iconPath}`);
     if (!this.notifySendActions) {
-      return run('notify-send', [...base, n.title, body]).then(() => 'none');
+      return run('notify-send', [...base, '--', n.title, body]).then(() => 'none');
     }
     this.kill(n.group);
     return new Promise((resolve) => {
-      const args = [...base, '--print-id', '--wait', `--action=primary=${n.primaryLabel}`, `--action=later=${n.laterLabel}`, n.title, body];
+      const args = [...base, '--print-id', '--wait', `--action=primary=${n.primaryLabel}`, `--action=later=${n.laterLabel}`, '--', n.title, body];
       const child = spawn('notify-send', args, { stdio: ['ignore', 'pipe', 'ignore'] });
       this.live.set(n.group, child);
       let out = '';
@@ -262,6 +265,14 @@ export class DesktopNotifier {
       }
     }
   }
+}
+
+/**
+ * Text that starts with "-" (e.g. a teammate called "-x") would be read by alerter as an option and
+ * the alert dropped; an invisible zero-width space in front keeps it plain text.
+ */
+export function notFlag(s: string): string {
+  return s.startsWith('-') ? `\u200b${s}` : s;
 }
 
 export function parseAlerterOutput(out: string, primaryLabel: string): Outcome {

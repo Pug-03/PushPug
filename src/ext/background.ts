@@ -3,7 +3,7 @@ import { basename, dirname, join } from 'node:path';
 import { copyFileSync, existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { SharedStore, type WorkerConfig } from '../core/storage';
-import { installAgent, uninstallAgent, removeLegacyAgent, isAgentInstalled, isBackgroundSupported, buildPlist, plistPath, buildVbs, type AgentPaths } from '../background/agent';
+import { installAgent, uninstallAgent, removeLegacyAgent, isAgentInstalled, isBackgroundSupported, buildPlist, plistPath, vbsFileBytes, type AgentPaths } from '../background/agent';
 import { findAlerter } from '../notify/desktop';
 import { electronNodePath, productJson } from './host';
 import { iconPath } from './desktopChannel';
@@ -103,7 +103,7 @@ export class Background {
   private agentOutdated(p: AgentPaths): boolean {
     try {
       if (p.platform === 'darwin') return readFileSync(plistPath(p.home), 'utf8') !== buildPlist(p);
-      if (p.platform === 'win32') return readFileSync(join(p.storageDir, 'launcher.vbs'), 'utf8') !== buildVbs(p);
+      if (p.platform === 'win32') return !readFileSync(join(p.storageDir, 'launcher.vbs')).equals(vbsFileBytes(p));
     } catch {
       return true;
     }

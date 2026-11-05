@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildToastXml, buildToastScript, parseAlerterOutput, xmlEscape } from '../src/notify/desktop';
+import { buildToastXml, buildToastScript, parseAlerterOutput, xmlEscape, notFlag } from '../src/notify/desktop';
 import { summarizeIncoming } from '../src/core/messages';
 
 test('toast XML escapes user text and keeps buttons as protocol links', () => {
@@ -18,11 +18,19 @@ test('toast XML escapes user text and keeps buttons as protocol links', () => {
   assert.match(xml, /content="ไว้ทีหลัง" activationType="system" arguments="dismiss"/);
 });
 
-test('toast script quotes single quotes for PowerShell', () => {
-  const script = buildToastScript("<toast>it's</toast>", "tag'1", 'App');
-  assert.match(script, /LoadXml\('<toast>it''s<\/toast>'\)/);
-  assert.match(script, /\$toast\.Tag = 'tag''1'/);
+test('toast script carries data as base64, so no quote can end a PowerShell string', () => {
+  const evil = "x\u2019+(Start-Process calc)+\u2019 it's \u2018q\u201b";
+  const script = buildToastScript(`<toast>${evil}</toast>`, `tag'${evil}`, 'App');
+  assert.ok(!script.includes('Start-Process'), 'data must not appear as PowerShell source');
+  const b64 = [...script.matchAll(/FromBase64String\('([A-Za-z0-9+/=]*)'\)/g)].map((m) => Buffer.from(m[1], 'base64').toString('utf8'));
+  assert.ok(b64.includes(`<toast>${evil}</toast>`));
+  assert.ok(b64.includes(`tag'${evil}`));
   assert.equal(xmlEscape(`'"`), '&apos;&quot;');
+});
+
+test('alerter never reads a title starting with "-" as an option', () => {
+  assert.equal(notFlag('-x pushed'), '\u200b-x pushed');
+  assert.equal(notFlag('Alice pushed'), 'Alice pushed');
 });
 
 test('alerter output parsing', () => {
