@@ -467,11 +467,27 @@
           "markdownDescription": "%cfg.pullRequests.enabled%",
           "order": 30
         },
+        "pushpug.pullRequests.workflow": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "direct",
+            "pullRequest"
+          ],
+          "enumDescriptions": [
+            "%cfg.pullRequests.workflow.ask%",
+            "%cfg.pullRequests.workflow.direct%",
+            "%cfg.pullRequests.workflow.pullRequest%"
+          ],
+          "default": "ask",
+          "markdownDescription": "%cfg.pullRequests.workflow%",
+          "order": 31
+        },
         "pushpug.pullRequests.notifyTeam": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "%cfg.pullRequests.notifyTeam%",
-          "order": 31
+          "order": 32
         }
       }
     }

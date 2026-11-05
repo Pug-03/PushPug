@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Pick how your commits on main reach the team with `pushpug.pullRequests.workflow`: **ask** (new default: My Team offers both
+  **Push to main** and **Send as pull request**), **direct** (push straight to main, no pull request reminders) or **pullRequest**
+  (the old behaviour). It's a personal setting, so one teammate can push to main while another always uses pull requests
+
 ## 1.0.2 — 2026-10-23
 
 - Pressing **Finish merge** on the "all conflicts fixed" pop-up could hang PushPug for that repository (it waited for itself); checks now run their follow-ups after releasing the repository

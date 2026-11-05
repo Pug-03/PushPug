@@ -61,5 +61,9 @@
   "cmd.finishTask": "Back to Main (Task Done) · กลับไป main",
   "cmd.openPullRequest": "Open My Pull Request · เปิด pull request",
   "cfg.pullRequests.enabled": "Pull request workflow: **Start New Task** makes a branch from the latest main, **Send for Review** pushes it and opens the pull request, and PushPug tells you when it's merged, closed or conflicts with main. Uses VS Code's GitHub sign-in.",
-  "cfg.pullRequests.notifyTeam": "Tell me when a teammate opens a pull request."
+  "cfg.pullRequests.notifyTeam": "Tell me when a teammate opens a pull request.",
+  "cfg.pullRequests.workflow": "How your commits on main reach the team. Everyone picks their own: one person can push straight to main while a teammate always uses pull requests.",
+  "cfg.pullRequests.workflow.ask": "Ask each time: My Team offers both Push to main and Send as pull request.",
+  "cfg.pullRequests.workflow.direct": "Push straight to main. No pull request reminders.",
+  "cfg.pullRequests.workflow.pullRequest": "Always use pull requests: commits made on main are moved to a task branch and sent for review."
 }

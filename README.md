@@ -736,6 +736,7 @@ notifications meanwhile; the status bar keeps updating and anything you missed i
 | `pushpug.actions.notifyFor` | `all` | `all`, `mine`, `team` |
 | `pushpug.avatars` | on | commit authors' GitHub profile pictures |
 | `pushpug.pullRequests.enabled` | on | Start New Task / Send for Review, pull request alerts |
+| `pushpug.pullRequests.workflow` | ask | how your commits on main reach the team: `ask` (both buttons), `direct` (push straight to main, no reminders) or `pullRequest` (always via pull request). Each person picks their own |
 | `pushpug.pullRequests.notifyTeam` | on | tell me when a teammate opens a pull request |
 | `pushpug.language` / `pushpug.theme` | auto · system | Thai or English; light, dark or match VS Code |
 

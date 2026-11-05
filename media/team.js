@@ -326,6 +326,14 @@
     var p = r && r.pr;
     if (!p || mode === 'empty' || mode === 'checking') return '';
     if (p.onBase) {
+      // Each person picks how commits on main reach the team: straight to main, via pull request, or ask.
+      if (p.workflow === 'direct') return '';
+      if (p.unpushed > 0 && p.workflow !== 'pullRequest') {
+        return '<section class="alert-card pr-card">' +
+          '<div class="alert-head">' + I('cloud') + '<strong>' + esc(s('team.pr.unsentAsk', p.unpushed, p.base)) + '</strong></div>' +
+          '<p>' + esc(s('team.pr.unsentAskHint', p.unpushed, p.base)) + '</p>' +
+          '<div class="pr-actions">' + btn('primary sm', 'cloud', s('team.pr.pushMain', p.base), 'push') + btn('sm', 'branch', s('team.pr.sendPr'), 'pr', 'send') + '</div></section>';
+      }
       if (p.unpushed > 0) {
         return '<section class="alert-card warn pr-card">' +
           '<div class="alert-head">' + I('branch') + '<strong>' + esc(s('team.pr.unsent', p.unpushed, p.base)) + '</strong></div>' +

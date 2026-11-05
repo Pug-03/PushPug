@@ -61,5 +61,9 @@
   "cmd.finishTask": "กลับไป main (งานเสร็จแล้ว)",
   "cmd.openPullRequest": "เปิด pull request",
   "cfg.pullRequests.enabled": "ทำงานแบบ pull request: **เริ่มงานใหม่** แยก branch จาก main ล่าสุด **ส่งงานให้ทีมดู** push แล้วเปิด pull request ให้ และ PushPug จะบอกเมื่อถูก merge ถูกปิด หรือชนกับ main ใช้ระบบล็อกอิน GitHub ของ VS Code",
-  "cfg.pullRequests.notifyTeam": "บอกเมื่อเพื่อนเปิด pull request ใหม่"
+  "cfg.pullRequests.notifyTeam": "บอกเมื่อเพื่อนเปิด pull request ใหม่",
+  "cfg.pullRequests.workflow": "commit บน main จะส่งให้ทีมแบบไหน แต่ละคนเลือกเองได้ คนหนึ่ง push เข้า main ตรง ๆ อีกคนใช้ pull request ตลอดก็ได้",
+  "cfg.pullRequests.workflow.ask": "ถามทุกครั้ง: หน้า My Team มีให้เลือกทั้ง Push เข้า main และส่งเป็น pull request",
+  "cfg.pullRequests.workflow.direct": "Push เข้า main ตรง ๆ ไม่เตือนเรื่อง pull request",
+  "cfg.pullRequests.workflow.pullRequest": "ใช้ pull request ตลอด: commit บน main จะถูกย้ายไป branch งานแล้วส่งให้ทีมดู"
 }
