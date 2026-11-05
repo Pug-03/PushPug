@@ -907,3 +907,98 @@
 .pr-card:not(.warn) .alert-head {
   color: var(--pp-text);
 }
+
+/* ---------- narrow side bar (e.g. a laptop with the side bar dragged to its minimum) ---------- */
+body {
+  container-type: inline-size;
+}
+/* Author, time and sha wrap as whole words, never one letter per line. */
+.tl-meta > * {
+  white-space: nowrap;
+}
+@container (max-width: 260px) {
+  .tm {
+    gap: var(--pp-s2);
+    padding: var(--pp-s2) var(--pp-s2) var(--pp-s3);
+  }
+  .hero {
+    gap: 6px;
+    padding: var(--pp-s3) var(--pp-s2);
+  }
+  .hero-art {
+    min-height: 0;
+  }
+  .hero .mascot {
+    width: 96px;
+    height: auto;
+  }
+  .hero-title {
+    font-size: 14px;
+    line-height: 1.3;
+  }
+  .hero-sub {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .hero-actions .btn {
+    width: 100%;
+    justify-content: center;
+    gap: 6px;
+    padding-inline: 10px;
+    font-size: 13px;
+  }
+  .pr-row,
+  .pr-card {
+    padding: var(--pp-s2);
+  }
+  .pr-text {
+    flex-basis: 100%;
+  }
+  .pr-row > .btn,
+  .pr-actions .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+  /* Timeline: text gets the whole width; badges go under it. */
+  .tl-item {
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 6px;
+    row-gap: 3px;
+  }
+  .tl-item > .tl-new,
+  .tl-item > .ck-badge {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: 0;
+  }
+  .tl-meta .mono,
+  .tl-meta time + .sep {
+    display: none;
+  }
+  .tl-author {
+    max-width: 100%;
+  }
+  /* Button labels wrap to a second line instead of being cut off. */
+  .pr-row > .btn span,
+  .pr-actions .btn span {
+    white-space: normal;
+    text-overflow: clip;
+  }
+  /* Same-file list: file name on one line (cut with …), folder underneath. */
+  .file-link {
+    flex-wrap: wrap;
+    column-gap: 6px;
+    row-gap: 0;
+  }
+  .file-link .fname {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-link .fdir {
+    flex-basis: 100%;
+    padding-left: 22px;
+  }
+}

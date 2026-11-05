@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- My Team fits a narrow side bar (e.g. a MacBook with the side bar dragged to its minimum): smaller Pug and padding, commit
+  badges move under the text, author and time no longer break one letter per line, buttons and file names don't get cut off
 - Pick how your commits on main reach the team with `pushpug.pullRequests.workflow`: **ask** (new default: My Team offers both
   **Push to main** and **Send as pull request**), **direct** (push straight to main, no pull request reminders) or **pullRequest**
   (the old behaviour). It's a personal setting, so one teammate can push to main while another always uses pull requests
